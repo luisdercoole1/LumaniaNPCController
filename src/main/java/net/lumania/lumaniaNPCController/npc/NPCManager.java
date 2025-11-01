@@ -183,38 +183,32 @@ public class NPCManager {
 
     // ---------- Public API ----------
 
-    public static void printNPCNames() {
-        if (ListNPC.NPCs.isEmpty()) {
-            Bukkit.getConsoleSender().sendMessage("-- Keine NPCs in der Liste --");
-            return;
-        }
-        for (NPC n : ListNPC.NPCs.values()) {
-            Bukkit.getConsoleSender().sendMessage(n.getPlayer().getBukkitEntity().getDisplayName());
-        }
+    public static void spawnHandlerNPC(Player player) {
+    Bukkit.getLogger().info("[LNPC] Spawn-Handler für Spieler gestartet: " + player.getName());
+    Bukkit.getLogger().info("[LNPC] Anzahl NPCs in Liste: " + ListNPC.getAllNPCs().size());
+    
+    ListNPC.spawnedNPCs.putIfAbsent(player, new HashMap<>());
+
+    // Beende den alten Task für diesen Spieler, falls vorhanden
+    UUID playerId = player.getUniqueId();
+    if (activeSpawnTasks.containsKey(playerId)) {
+        Bukkit.getScheduler().cancelTask(activeSpawnTasks.get(playerId));
     }
 
-    public static void spawnHandlerNPC(Player player) {
-        ListNPC.spawnedNPCs.putIfAbsent(player, new HashMap<>());
-
-        // Beende den alten Task für diesen Spieler, falls vorhanden
-        UUID playerId = player.getUniqueId();
-        if (activeSpawnTasks.containsKey(playerId)) {
-            Bukkit.getScheduler().cancelTask(activeSpawnTasks.get(playerId));
-        }
-
-        BukkitRunnable task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!player.isOnline()) {
-                    this.cancel();
-                    ListNPC.spawnedNPCs.remove(player);
-                    activeSpawnTasks.remove(playerId);
+    BukkitRunnable task = new BukkitRunnable() {
+        @Override
+        public void run() {
+            if (!player.isOnline()) {
+                this.cancel();
+                ListNPC.spawnedNPCs.remove(player);
+                activeSpawnTasks.remove(playerId);
                     return;
                 }
 
                 double renderRange = getRenderRangeOrDefault(24.0);
 
-                for (NPC npc : ListNPC.NPCs.values()) {
+                // ÄNDERUNG: Iteriere über alle NPCs
+                for (NPC npc : ListNPC.getAllNPCs()) {
                     // Nur gleiche Welt
                     if (!npc.getPlayer().getBukkitEntity().getWorld().equals(player.getWorld())) {
                         boolean isSpawned = ListNPC.spawnedNPCs.get(player).getOrDefault(npc, false);
@@ -394,19 +388,20 @@ public class NPCManager {
     }
 
     public static void deleteNPCs() {
-        for (NPC wrapper : ListNPC.NPCs.values()) {
-            ServerPlayer npc = wrapper.getPlayer();
-            int id = npc.getBukkitEntity().getEntityId();
-            ClientboundRemoveEntitiesPacket packetDestroy = new ClientboundRemoveEntitiesPacket(new int[]{id});
-            ClientboundPlayerInfoRemovePacket packetRemove = new ClientboundPlayerInfoRemovePacket(List.of(safeGetUUID(npc)));
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                ServerGamePacketListenerImpl connection = ((CraftPlayer) p).getHandle().connection;
-                safeSendPacket(connection, packetDestroy);
-                safeSendPacket(connection, packetRemove);
-            }
+    // Iteriere über alle NPCs (flache Liste)
+    for (NPC wrapper : ListNPC.getAllNPCs()) {
+        ServerPlayer npc = wrapper.getPlayer();
+        int id = npc.getBukkitEntity().getEntityId();
+        ClientboundRemoveEntitiesPacket packetDestroy = new ClientboundRemoveEntitiesPacket(new int[]{id});
+        ClientboundPlayerInfoRemovePacket packetRemove = new ClientboundPlayerInfoRemovePacket(List.of(safeGetUUID(npc)));
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            ServerGamePacketListenerImpl connection = ((CraftPlayer) p).getHandle().connection;
+            safeSendPacket(connection, packetDestroy);
+            safeSendPacket(connection, packetRemove);
         }
-        ENTITIES.clear();
     }
+    ENTITIES.clear();
+}
 
     private static double getRenderRangeOrDefault(double def) {
         try {
