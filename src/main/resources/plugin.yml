@@ -1,0 +1,7 @@
+name: LumaniaNPCController
+version: '1.0-SNAPSHOT'
+main: net.lumania.lumaniaNPCController.LumaniaNPCController
+api-version: '1.20'
+depend:
+  - ProtocolLib
+  - PlaceholderAPI
