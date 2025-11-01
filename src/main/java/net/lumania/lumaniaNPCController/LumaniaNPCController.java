@@ -1,5 +1,6 @@
 package net.lumania.lumaniaNPCController;
 
+import net.lumania.lumaniaNPCController.events.NPCInteraction;
 import net.lumania.lumaniaNPCController.npc.NPCListener;
 import net.lumania.lumaniaNPCController.npc.NPCManager;
 import org.bukkit.Bukkit;
@@ -12,6 +13,9 @@ public final class LumaniaNPCController extends JavaPlugin {
     public void onEnable() {
         // Prepare config (optional: npc_render_range)
         saveDefaultConfig();
+
+        // Initialisiere das NPC-Interaction-System
+        NPCInteraction.initialize(this);
 
         // Register listeners
         Bukkit.getPluginManager().registerEvents(new NPCListener(), this);
@@ -30,6 +34,9 @@ public final class LumaniaNPCController extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        // Entferne alle Interaktionen beim Disable
+        NPCInteraction.clearAllInteractions();
+
         NPCManager.deleteNPCs();
 
         Bukkit.getConsoleSender().sendMessage(
