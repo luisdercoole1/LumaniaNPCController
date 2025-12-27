@@ -1,0 +1,90 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'io.papermc.paperweight.userdev' version '1.7.1'
+}
+
+group = 'net.lumania'
+version = '1.0.0'
+description = 'LumaniaNPCController'
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'papermc-repo'
+        url = 'https://repo.papermc.io/repository/maven-public/'
+    }
+
+    maven {
+        url = 'https://repo.extendedclip.com/content/repositories/placeholderapi/'
+    }
+}
+
+dependencies {
+    // Paper 1.21.1 mit NMS Support
+    paperweight.paperDevBundle("1.21.1-R0.1-SNAPSHOT")
+    
+    // Für Mojang AuthLib (falls noch nicht inkludiert)
+    compileOnly 'com.mojang:authlib:6.0.54'
+
+
+    compileOnly 'me.clip:placeholderapi:2.11.7'
+    compileOnly 'net.dmulloy2:ProtocolLib:5.4.0'
+}
+
+tasks {
+    build {
+        dependsOn reobfJar
+    }
+    
+    compileJava {
+        options.encoding = 'UTF-8'
+        options.release = 21
+    }
+    
+    javadoc {
+        options.encoding = 'UTF-8'
+    }
+    
+    // Wichtig: reobfJar für NMS Code
+    reobfJar {
+        outputJar = layout.buildDirectory.file("libs/LumaniaNPCController.jar")
+    }
+}
+
+// Publishing Konfiguration für GitHub Packages
+publishing {
+    publications {
+        maven(MavenPublication) {
+            // Verwende das reobfuscated JAR für Publishing
+            artifact(tasks.reobfJar.outputJar)
+            
+            groupId = 'net.lumania'
+            artifactId = 'lumania-npc-controller'
+            version = '2.0.0'
+            
+            pom {
+                name = 'LumaniaNPCController'
+                description = 'A Minecraft plugin for NPC management with NMS support'
+                url = 'https://github.com/luisdercoole1/LumaniaNPCController' // Ändere den Username
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = "https://maven.pkg.github.com/luisdercoole1/LumaniaNPCController" // Ändere den Username
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+            }
+        }
+    }
+}
+
+
+
